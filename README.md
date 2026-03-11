@@ -17,9 +17,9 @@
 </p>
 
 <p>
-  👉 <a href="https://your-username.github.io/tg-agent-leadgen/"><strong>🚀 Live Demo</strong></a> |
+  👉 <a href="https://Kuzko-coder.github.io/tg-agent-leadgen/"><strong>🚀 Live Demo</strong></a> |
   <a href="docs/"><strong>📖 Documentation</strong></a> |
-  <a href="https://github.com/your-username/tg-agent-leadgen/issues"><strong>🐛 Issues</strong></a>
+  <a href="https://github.com/Kuzko-coder/tg-agent-leadgen/issues"><strong>🐛 Issues</strong></a>
 </p>
 
 </div>
@@ -77,7 +77,7 @@ The agent uses the **OARS method** (Open → Affirm → Reflect → Summary) to 
 ### Installation
 
 ```bash
-git clone https://github.com/your-username/tg-agent-leadgen.git
+git clone https://github.com/Kuzko-coder/tg-agent-leadgen.git
 cd tg-agent-leadgen
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt

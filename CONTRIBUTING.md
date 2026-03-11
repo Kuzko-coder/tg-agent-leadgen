@@ -14,7 +14,7 @@
 **Setup:**
 
 ```bash
-git clone https://github.com/your-username/tg-agent-leadgen.git
+git clone https://github.com/Kuzko-coder/tg-agent-leadgen.git
 cd tg-agent-leadgen
 python3 -m venv venv
 source venv/bin/activate       # Windows: venv\Scripts\activate
@@ -47,7 +47,7 @@ This project follows a monorepo-style layout under `packages/`:
 
 ### Reporting Issues
 
-- Use the [GitHub issue tracker](https://github.com/your-username/tg-agent-leadgen/issues)
+- Use the [GitHub issue tracker](https://github.com/Kuzko-coder/tg-agent-leadgen/issues)
 - Search existing issues before creating new ones
 - Provide clear reproduction steps for bugs
 - Include Python version and OS details
@@ -57,7 +57,7 @@ This project follows a monorepo-style layout under `packages/`:
 **1. Fork and Clone:**
 
 ```bash
-git clone https://github.com/your-username/tg-agent-leadgen.git
+git clone https://github.com/Kuzko-coder/tg-agent-leadgen.git
 cd tg-agent-leadgen
 ```
 
@@ -152,7 +152,7 @@ By contributing to this project, you agree that your contributions will be licen
 
 ## 💬 Questions?
 
-- Open a [GitHub issue](https://github.com/your-username/tg-agent-leadgen/issues)
+- Open a [GitHub issue](https://github.com/Kuzko-coder/tg-agent-leadgen/issues)
 - Check existing documentation and issues first
 - Be respectful and constructive in all discussions
 

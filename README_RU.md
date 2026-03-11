@@ -75,7 +75,7 @@
 ### Установка
 
 ```bash
-git clone https://github.com/your-username/tg-agent-leadgen.git
+git clone https://github.com/Kuzko-coder/tg-agent-leadgen.git
 cd tg-agent-leadgen
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
