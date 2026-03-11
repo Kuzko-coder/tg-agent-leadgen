@@ -1,0 +1,28 @@
+# Telegram MTProto client
+telethon==1.36.0
+
+# OpenAI-compatible client для xAI Grok API
+openai>=1.30.0
+
+# Async SQLite
+aiosqlite>=0.20.0
+
+# Pydantic settings (.env loader)
+pydantic-settings>=2.3.0
+pydantic>=2.7.0
+
+# StringSession encryption
+cryptography>=42.0.0
+
+# Environment file support
+python-dotenv>=1.0.1
+
+# Rich terminal output (onboarding wizard)
+rich>=13.7.0
+
+# Typing / hints
+typing-extensions>=4.11.0
+
+# Testing
+pytest>=8.2.0
+pytest-asyncio>=0.23.0

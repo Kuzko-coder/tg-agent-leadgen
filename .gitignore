@@ -1,0 +1,37 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Environment variables (НИКОГДА не коммитить!)
+.env
+
+# Data & sessions (содержат чувствительные данные)
+data/
+*.db
+*.db-journal
+
+# Python packaging
+*.egg-info/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TG Agent LeadGen — Autonomous Telegram AI Agent</title>
+  <meta name="description" content="Autonomous Telegram AI userbot with Grok LLM. OARS conversation method, anti-ban protection, human behavior simulation.">
+  <meta property="og:title" content="TG Agent LeadGen">
+  <meta property="og:description" content="Autonomous Telegram AI Agent for Lead Generation. Powered by Grok & Telethon.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --bg2: #111118;
+      --bg3: #1a1a26;
+      --border: rgba(255,255,255,0.08);
+      --accent: #7c6aff;
+      --accent2: #a259ff;
+      --accent3: #00d4aa;
+      --text: #e8e8f0;
+      --text-muted: #888899;
+      --code-bg: #0d0d1a;
+      --gradient: linear-gradient(135deg, #7c6aff 0%, #a259ff 50%, #00d4aa 100%);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ─── NAV ─────────────────────────────────── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(10,10,15,0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.5rem;
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .nav-brand {
+      display: flex; align-items: center; gap: 0.6rem;
+      font-weight: 700; font-size: 1.05rem;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-brand .emoji { -webkit-text-fill-color: initial; font-size: 1.2rem; }
+
+    .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+    .nav-links a {
+      color: var(--text-muted); text-decoration: none; font-size: 0.875rem;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    .nav-cta {
+      background: var(--accent);
+      color: #fff !important;
+      padding: 0.4rem 1rem;
+      border-radius: 6px;
+      font-weight: 500;
+      transition: opacity 0.2s !important;
+    }
+    .nav-cta:hover { opacity: 0.85; }
+
+    /* ─── HERO ─────────────────────────────────── */
+    .hero {
+      padding: 140px 1.5rem 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -200px; left: 50%; transform: translateX(-50%);
+      width: 800px; height: 800px;
+      background: radial-gradient(ellipse, rgba(124,106,255,0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: rgba(124,106,255,0.1);
+      border: 1px solid rgba(124,106,255,0.3);
+      border-radius: 100px;
+      padding: 0.3rem 0.9rem;
+      font-size: 0.8rem;
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+      animation: fadeInDown 0.6s ease;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.2rem, 6vw, 4.2rem);
+      font-weight: 800;
+      line-height: 1.1;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 1.2rem;
+      animation: fadeInDown 0.7s ease;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(1rem, 2vw, 1.25rem);
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 1rem;
+      animation: fadeInDown 0.8s ease;
+    }
+
+    .hero-lang {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+      animation: fadeInDown 0.85s ease;
+    }
+    .hero-lang a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .hero-badges {
+      display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;
+      margin-bottom: 2.5rem;
+      animation: fadeInDown 0.9s ease;
+    }
+    .hero-badges img { height: 22px; border-radius: 4px; }
+
+    .hero-actions {
+      display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
+      animation: fadeInUp 1s ease;
+    }
+
+    .btn {
+      padding: 0.7rem 1.6rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
+
+    .btn-secondary {
+      background: var(--bg3);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { border-color: var(--accent); transform: translateY(-1px); }
+
+    /* ─── DEMO TERMINAL ────────────────────────── */
+    .demo-section {
+      max-width: 900px;
+      margin: 60px auto;
+      padding: 0 1.5rem;
+    }
+
+    .terminal {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+    }
+
+    .terminal-bar {
+      background: #1a1a2e;
+      padding: 0.8rem 1rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot-red { background: #ff5f57; }
+    .dot-yellow { background: #ffbd2e; }
+    .dot-green { background: #28c840; }
+
+    .terminal-title {
+      margin-left: auto; margin-right: auto;
+      font-size: 0.75rem; color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .terminal-body {
+      padding: 1.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      line-height: 1.8;
+    }
+
+    .line { display: block; }
+    .line-prompt { color: var(--accent3); }
+    .line-cmd { color: var(--text); }
+    .line-out { color: var(--text-muted); }
+    .line-success { color: #28c840; }
+    .line-warn { color: #ffbd2e; }
+    .line-agent { color: var(--accent); font-weight: 600; }
+    .line-user { color: #00d4aa; }
+
+    .cursor {
+      display: inline-block;
+      width: 8px; height: 1em;
+      background: var(--accent);
+      animation: blink 1s step-end infinite;
+      vertical-align: text-bottom;
+    }
+
+    /* ─── FEATURES ─────────────────────────────── */
+    section { padding: 80px 1.5rem; max-width: 1100px; margin: 0 auto; }
+
+    .section-label {
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-size: 0.75rem;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .section-title {
+      font-size: clamp(1.6rem, 3vw, 2.4rem);
+      font-weight: 700;
+      margin-bottom: 0.8rem;
+    }
+
+    .section-desc {
+      color: var(--text-muted);
+      max-width: 600px;
+      margin-bottom: 3rem;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.2rem;
+    }
+
+    .feature-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: all 0.3s;
+    }
+
+    .feature-card:hover {
+      border-color: rgba(124,106,255,0.4);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(124,106,255,0.1);
+    }
+
+    .feature-icon { font-size: 1.8rem; margin-bottom: 0.8rem; }
+
+    .feature-title {
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      font-size: 1rem;
+    }
+
+    .feature-desc { color: var(--text-muted); font-size: 0.875rem; }
+
+    /* ─── OARS SECTION ─────────────────────────── */
+    .oars-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      counter-reset: oars;
+    }
+
+    .oars-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      position: relative;
+      counter-increment: oars;
+    }
+
+    .oars-card::before {
+      content: counter(oars);
+      position: absolute; top: 1rem; right: 1rem;
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: rgba(124,106,255,0.12);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .oars-letter {
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.4rem;
+    }
+
+    /* ─── CODE ─────────────────────────────────── */
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 1.5rem 0;
+    }
+
+    .code-header {
+      background: var(--bg2);
+      padding: 0.6rem 1rem;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .copy-btn {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+    .copy-btn:hover { color: var(--text); border-color: var(--accent); }
+
+    .code-body {
+      padding: 1.2rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      overflow-x: auto;
+      line-height: 1.7;
+    }
+
+    .kw { color: #c792ea; }
+    .str { color: #c3e88d; }
+    .cmt { color: #546e7a; font-style: italic; }
+    .fn { color: #82aaff; }
+    .var { color: #f78c6c; }
+    .num { color: #f78c6c; }
+    .cls { color: #ffcb6b; }
+
+    /* ─── STATS ─────────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1.2rem;
+    }
+
+    .stat-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: 800;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1;
+      margin-bottom: 0.3rem;
+    }
+
+    .stat-label { color: var(--text-muted); font-size: 0.85rem; }
+
+    /* ─── INSTALL ──────────────────────────────── */
+    .install-tabs {
+      display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 0.4rem 0.9rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      transition: all 0.2s;
+    }
+    .tab-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* ─── FOOTER ───────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 3rem 1.5rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    .footer-links {
+      display: flex; flex-wrap: wrap; gap: 1.5rem; justify-content: center; margin-bottom: 1rem;
+    }
+
+    /* ─── DIVIDER ──────────────────────────────── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    /* ─── ANIMATIONS ───────────────────────────── */
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes blink { 50% { opacity: 0; } }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(124,106,255,0.4); }
+      50% { box-shadow: 0 0 0 8px rgba(124,106,255,0); }
+    }
+
+    .live-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      background: var(--accent3);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+      margin-right: 6px;
+    }
+
+    /* ─── RESPONSIVE ───────────────────────────── */
+    @media (max-width: 640px) {
+      nav { padding: 0 1rem; }
+      .nav-links { gap: 0.8rem; }
+      .nav-links a:not(.nav-cta) { display: none; }
+      .hero { padding: 100px 1rem 60px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">
+    <span class="emoji">🤖</span>
+    TG Agent LeadGen
+  </div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#oars">How It Works</a>
+    <a href="#quickstart">Quick Start</a>
+    <a href="https://github.com/your-username/tg-agent-leadgen">Docs</a>
+    <a href="https://github.com/your-username/tg-agent-leadgen" class="nav-cta">⭐ GitHub</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">
+    <span class="live-dot"></span>
+    v1.0.0 · grok-4-1-fast-reasoning
+  </div>
+  <h1>The AI Agent<br>Living in Your Telegram</h1>
+  <p class="hero-subtitle">
+    Autonomous userbot that listens to chats, engages prospects like a human,<br>
+    and converts them — powered by <strong>Grok LLM</strong> and <strong>Telethon</strong>.
+  </p>
+  <div class="hero-lang">
+    🌐 <a href="README.md">English</a> | <a href="README_RU.md">Русский</a>
+  </div>
+  <div class="hero-badges">
+    <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT">
+    <img src="https://img.shields.io/badge/Python-3.10%2B-blue" alt="Python">
+    <img src="https://img.shields.io/badge/Telethon-MTProto-green" alt="Telethon">
+    <img src="https://img.shields.io/badge/LLM-Grok%204.1-orange" alt="Grok">
+    <img src="https://img.shields.io/badge/tests-18%20passed-brightgreen" alt="Tests">
+  </div>
+  <div class="hero-actions">
+    <a href="#quickstart" class="btn btn-primary">🚀 Quick Start</a>
+    <a href="https://github.com/your-username/tg-agent-leadgen" class="btn btn-secondary">📖 GitHub</a>
+    <a href="#oars" class="btn btn-secondary">🧠 How It Works</a>
+  </div>
+</section>
+
+<!-- DEMO TERMINAL -->
+<div class="demo-section">
+  <div class="terminal">
+    <div class="terminal-bar">
+      <span class="dot dot-red"></span>
+      <span class="dot dot-yellow"></span>
+      <span class="dot dot-green"></span>
+      <span class="terminal-title">bash — tg-agent-leadgen</span>
+    </div>
+    <div class="terminal-body">
+      <span class="line"><span class="line-prompt">$ </span><span class="line-cmd">python main.py</span></span>
+      <span class="line line-out">✨ TG-Agent-LeadGen starting...</span>
+      <span class="line line-success">✅ Database initialized (SQLite WAL)</span>
+      <span class="line line-success">✅ Authorized as: Алина (@alina_design)</span>
+      <span class="line line-success">✅ Agent started! Listening for: дизайн, интерьер, ремонт</span>
+      <span class="line"> </span>
+      <span class="line line-warn">⚡ [Handler] Trigger matched! chat_id=123456 from @user_ivan</span>
+      <span class="line line-out">   → OARS step 1/4: open question</span>
+      <span class="line line-out">   → Read acknowledge sent</span>
+      <span class="line line-out">   → Typing simulation: 4.2s</span>
+      <span class="line line-agent">   ← AGENT: "Слушай, а ты уже делал ремонт или только планируешь?"</span>
+      <span class="line"> </span>
+      <span class="line line-user">   → USER: "планирую, хочу скандинавский стиль"</span>
+      <span class="line line-out">   → OARS step 2/4: empathy</span>
+      <span class="line line-out">   → Reflection gate: ✅ clean reply</span>
+      <span class="line line-agent">   ← AGENT: "О, скандинавский — это огонь. Cебе так делала. Главная боль — это..."</span>
+      <span class="line"> </span>
+      <span class="line line-success">   🎉 Lead state: NEW → ENGAGED</span>
+      <span class="line"><span class="line-prompt">$ </span><span class="cursor"></span></span>
+    </div>
+  </div>
+</div>
+
+<!-- STATS -->
+<section style="padding: 40px 1.5rem;">
+  <div class="stats-grid" style="max-width: 1100px; margin: 0 auto;">
+    <div class="stat-card">
+      <div class="stat-number">18</div>
+      <div class="stat-label">Unit Tests Passing</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">10</div>
+      <div class="stat-label">Messages in Memory Window</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">4</div>
+      <div class="stat-label">OARS Conversation Steps</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">9</div>
+      <div class="stat-label">Packages / Modules</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">3</div>
+      <div class="stat-label">Background Jobs</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">0</div>
+      <div class="stat-label">Plaintext Sessions</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-label">What's inside</div>
+  <h2 class="section-title">✨ Features</h2>
+  <p class="section-desc">Everything you need — from anti-ban protection to conversation memory — built into a clean layered architecture.</p>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🧠</div>
+      <div class="feature-title">Grok 4.1 Fast Reasoning</div>
+      <div class="feature-desc">Uses xAI's <code>grok-4-1-fast-reasoning</code> via OpenAI-compatible API. Async retries on rate limits.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🗣️</div>
+      <div class="feature-title">OARS Conversation Method</div>
+      <div class="feature-desc">4-step funnel: open question → empathy → soft probe → native recommendation. Never pitches in message one.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🕵️</div>
+      <div class="feature-title">Human Behavior Simulation</div>
+      <div class="feature-desc">Read acknowledge + typing action + dynamic delay <code>T = len×0.1 + random(1,3)</code> seconds.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🚫</div>
+      <div class="feature-title">Anti-Ban Protection</div>
+      <div class="feature-desc">FloodWait exact sleep, PeerFlood 10min cooldown, exponential backoff, First-shot rule per chat.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">💾</div>
+      <div class="feature-title">Local Memory (SQLite WAL)</div>
+      <div class="feature-desc">10-message sliding window per <code>chat_id</code>. Async deque in RAM + SQLite persistence.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔐</div>
+      <div class="feature-title">Encrypted Sessions</div>
+      <div class="feature-desc">StringSession encrypted via Fernet. Auto-generated key saved to <code>.env</code>. Zero plaintext storage.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔍</div>
+      <div class="feature-title">Reflection Gate</div>
+      <div class="feature-desc">Pre-send filter detects banned AI phrases, premature sales pitch, identity leaks → auto-regenerates (2 attempts).</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <div class="feature-title">Daily Reports</div>
+      <div class="feature-desc">Stats to console + Telegram DM. New leads, conversions, funnel breakdown by state.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🧙</div>
+      <div class="feature-title">7-Step CLI Wizard</div>
+      <div class="feature-desc">Rich terminal UI. API creds → phone auth (2FA) → persona → goal → triggers → Grok key → report target.</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- OARS -->
+<section id="oars">
+  <div class="section-label">Conversation Strategy</div>
+  <h2 class="section-title">🧠 The OARS Method</h2>
+  <p class="section-desc">The agent never sells in the first message. It builds rapport first, then converts.</p>
+
+  <div class="oars-steps">
+    <div class="oars-card">
+      <div class="oars-letter">O</div>
+      <div class="feature-title">Open Question</div>
+      <div class="feature-desc">Trigger detected → ask one genuine open question. Show curiosity. Nothing else. No offers.</div>
+    </div>
+    <div class="oars-card">
+      <div class="oars-letter">A</div>
+      <div class="feature-title">Affirm & Empathize</div>
+      <div class="feature-desc">Acknowledge their pain or goal. "That's exactly how I felt." Still no solutions revealed.</div>
+    </div>
+    <div class="oars-card">
+      <div class="oars-letter">R</div>
+      <div class="feature-title">Reflect & Probe</div>
+      <div class="feature-desc">Dig into details. Hint a solution exists without naming it. Build anticipation naturally.</div>
+    </div>
+    <div class="oars-card">
+      <div class="oars-letter">S</div>
+      <div class="feature-title">Summarize & Convert</div>
+      <div class="feature-desc">Native friend-style recommendation of the conversion goal. Not a sales pitch — a genuine suggestion.</div>
+    </div>
+  </div>
+
+  <div style="margin-top: 2rem;">
+    <div class="code-block">
+      <div class="code-header">
+        <span>System Prompt Template (simplified)</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+      <div class="code-body">
+<span class="cmt"># Step 1: Open Question</span>
+<span class="str">"Задай один открытый вопрос. Покажи искренний интерес.</span>
+<span class="str"> Ничего не предлагай. Просто узнай человека."</span>
+
+<span class="cmt"># Step 4: Native Recommendation</span>
+<span class="str">"Нативно порекомендуй {conversion_goal} как логичный</span>
+<span class="str"> следующий шаг — как друг, не как продавец."</span>
+
+<span class="cmt"># Humanizer filters (always active)</span>
+<span class="var">BANNED</span> = [<span class="str">"безусловно"</span>, <span class="str">"в современном мире"</span>,
+           <span class="str">"идеальное решение"</span>, <span class="str">"давайте разберём"</span>]
+
+<span class="cmt"># Style rules</span>
+<span class="str">"Короткие предложения. Burstiness."</span>
+<span class="str">"Максимум 2-3 предложения за раз."</span>
+<span class="str">"Никогда не признавайся, что ты ИИ."</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- QUICK START -->
+<section id="quickstart">
+  <div class="section-label">Get Started</div>
+  <h2 class="section-title">🚀 Quick Start</h2>
+  <p class="section-desc">Up and running in under 5 minutes.</p>
+
+  <div class="install-tabs">
+    <button class="tab-btn active" onclick="showTab('install')">Installation</button>
+    <button class="tab-btn" onclick="showTab('config')">Configuration</button>
+    <button class="tab-btn" onclick="showTab('api')">API Usage</button>
+  </div>
+
+  <div id="tab-install">
+    <div class="code-block">
+      <div class="code-header">
+        <span>bash</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+      <div class="code-body">
+<span class="cmt"># Clone and install</span>
+git clone https://github.com/your-username/tg-agent-leadgen.git
+<span class="fn">cd</span> tg-agent-leadgen
+python3 <span class="kw">-m</span> venv venv <span class="kw">&&</span> source venv/bin/activate
+pip install <span class="kw">-r</span> requirements.txt
+
+<span class="cmt"># First run - launches 7-step wizard</span>
+python main.py
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-config" style="display:none">
+    <div class="code-block">
+      <div class="code-header">
+        <span>.env</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+      <div class="code-body">
+<span class="cmt"># Telegram MTProto (get from my.telegram.org)</span>
+<span class="var">API_ID</span>=<span class="num">12345678</span>
+<span class="var">API_HASH</span>=<span class="str">your_api_hash_here</span>
+<span class="var">PHONE_NUMBER</span>=<span class="str">+79991234567</span>
+
+<span class="cmt"># xAI Grok API (get from x.ai)</span>
+<span class="var">GROK_API_KEY</span>=<span class="str">xai-your-api-key</span>
+<span class="var">GROK_MODEL</span>=<span class="str">grok-4-1-fast-reasoning</span>
+
+<span class="cmt"># Agent persona</span>
+<span class="var">AGENT_NAME</span>=<span class="str">Алина</span>
+<span class="var">AGENT_PERSONA</span>=<span class="str">"Дизайнер интерьеров, 5 лет опыта, Москва"</span>
+<span class="var">CONVERSION_GOAL</span>=<span class="str">"Порекомендовать курс по дизайну"</span>
+<span class="var">TRIGGER_WORDS</span>=<span class="str">дизайн,интерьер,ремонт</span>
+
+<span class="cmt"># Reports (optional)</span>
+<span class="var">REPORT_RECIPIENT_ID</span>=<span class="num">123456789</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-api" style="display:none">
+    <div class="code-block">
+      <div class="code-header">
+        <span>python</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+      <div class="code-body">
+<span class="kw">from</span> packages.agent.agent <span class="kw">import</span> <span class="cls">AgentOrchestrator</span>
+<span class="kw">from</span> packages.telegram.client <span class="kw">import</span> <span class="fn">get_client</span>
+<span class="kw">from</span> packages.llms.grok_client <span class="kw">import</span> grok_client
+
+<span class="cmt"># Process a single event manually</span>
+agent = <span class="cls">AgentOrchestrator</span>()
+<span class="kw">await</span> agent.process(event, client)
+
+<span class="cmt"># Or call Grok directly</span>
+reply = <span class="kw">await</span> grok_client.<span class="fn">complete</span>(
+    messages=[{<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: <span class="str">"Привет!"</span>}],
+    system_prompt=<span class="str">"You are a helpful assistant."</span>
+)
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- CONTRIBUTING -->
+<section>
+  <div class="section-label">Open Source</div>
+  <h2 class="section-title">🤝 Contributing</h2>
+  <p class="section-desc">We welcome contributions from everyone in the community.</p>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🐛</div>
+      <div class="feature-title">Report Bugs</div>
+      <div class="feature-desc">Use the <a href="https://github.com/your-username/tg-agent-leadgen/issues" style="color: var(--accent);">GitHub issue tracker</a>. Include Python version and reproduction steps.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">✨</div>
+      <div class="feature-title">Submit Features</div>
+      <div class="feature-desc">Fork the repo, create a feature branch, add tests, and open a PR. See <a href="../CONTRIBUTING.md" style="color: var(--accent);">CONTRIBUTING.md</a>.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📝</div>
+      <div class="feature-title">Improve Docs</div>
+      <div class="feature-desc">Update this website, the README, or add usage examples. AI assistance is welcome for docs.</div>
+    </div>
+  </div>
+
+  <div style="margin-top: 2rem; background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem;">
+    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+      <div style="flex: 1; min-width: 200px;">
+        <div style="font-weight: 600; margin-bottom: 0.3rem;">⚠️ Note on AI-Assisted Coding</div>
+        <div style="color: var(--text-muted); font-size: 0.875rem;">
+          AI is recommended for: tests, docs, website. <strong style="color: var(--text);">NOT allowed</strong> for core anti-ban logic. Always review — you are the author of what you commit.
+        </div>
+      </div>
+      <a href="../CODE_OF_CONDUCT.md" class="btn btn-secondary" style="white-space: nowrap;">📋 Code of Conduct</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-links">
+    <a href="https://github.com/your-username/tg-agent-leadgen">GitHub</a>
+    <a href="../README.md">Documentation</a>
+    <a href="../CONTRIBUTING.md">Contributing</a>
+    <a href="../CODE_OF_CONDUCT.md">Code of Conduct</a>
+    <a href="../LICENSE">MIT License</a>
+  </div>
+  <p>MIT License · Copyright © 2026 tg-agent-leadgen contributors</p>
+  <p style="margin-top: 0.5rem;">Built with ❤️ using <a href="https://github.com/LonamiWebs/Telethon">Telethon</a> + <a href="https://x.ai">Grok xAI</a></p>
+  <p style="margin-top: 1rem; font-size: 0.75rem;">⭐ Star this repo if you find TG Agent LeadGen helpful!</p>
+</footer>
+
+<script>
+  function showTab(name) {
+    ['install','config','api'].forEach(t => {
+      document.getElementById('tab-' + t).style.display = t === name ? 'block' : 'none';
+    });
+    document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+      btn.classList.toggle('active', ['install','config','api'][i] === name);
+    });
+  }
+
+  function copyCode(btn) {
+    const block = btn.closest('.code-block').querySelector('.code-body');
+    navigator.clipboard.writeText(block.innerText).then(() => {
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 2000);
+    });
+  }
+
+  // Intersection Observer for fade-in animations
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.style.opacity = '1';
+        e.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.feature-card, .oars-card, .stat-card').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(20px)';
+    el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    observer.observe(el);
+  });
+</script>
+</body>
+</html>
