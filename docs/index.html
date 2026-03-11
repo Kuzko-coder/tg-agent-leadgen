@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TG Agent LeadGen — Autonomous Telegram AI Agent</title>
-  <meta name="description" content="Autonomous Telegram AI userbot with Grok LLM. OARS conversation method, anti-ban protection, human behavior simulation.">
-  <meta property="og:title" content="TG Agent LeadGen">
-  <meta property="og:description" content="Autonomous Telegram AI Agent for Lead Generation. Powered by Grok & Telethon.">
+  <title>TG Agent LeadGen — Smart Digital Word-of-Mouth in Telegram</title>
+  <meta name="description" content="Autonomous AI agent that converts public Telegram chat discussions into leads 24/7. Activates on trigger keywords, reads context, and natively recommends your product via social engineering.">
+  <meta property="og:title" content="TG Agent LeadGen — Digital Word-of-Mouth">
+  <meta property="og:description" content="Your AI agent sits in public Telegram chats 24/7. When someone asks 'who can recommend?' or 'which is better?' — it joins the conversation naturally and converts prospects into leads.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
@@ -488,12 +488,14 @@
 <section class="hero">
   <div class="hero-badge">
     <span class="live-dot"></span>
-    v1.0.0 · grok-4-1-fast-reasoning
+    v1.0.0 · works in public chats · 24/7
   </div>
-  <h1>The AI Agent<br>Living in Your Telegram</h1>
+  <h1>Smart Digital<br>Word-of-Mouth</h1>
   <p class="hero-subtitle">
-    Autonomous userbot that listens to chats, engages prospects like a human,<br>
-    and converts them — powered by <strong>Grok LLM</strong> and <strong>Telethon</strong>.
+    Your AI agent lives in public Telegram groups. When someone asks
+    <em>"кто посоветует?"</em> or <em>"где лучше купить?"</em> —
+    it <strong>joins the conversation naturally</strong>, reads the context,
+    and converts them with social engineering. No ads. No spam. Pure referral.
   </p>
   <div class="hero-lang">
     🌐 <a href="README.md">English</a> | <a href="README_RU.md">Русский</a>
@@ -503,12 +505,12 @@
     <img src="https://img.shields.io/badge/Python-3.10%2B-blue" alt="Python">
     <img src="https://img.shields.io/badge/Telethon-MTProto-green" alt="Telethon">
     <img src="https://img.shields.io/badge/LLM-Grok%204.1-orange" alt="Grok">
-    <img src="https://img.shields.io/badge/tests-18%20passed-brightgreen" alt="Tests">
+    <img src="https://img.shields.io/badge/works%2024%2F7-public%20chats-blueviolet" alt="24/7">
   </div>
   <div class="hero-actions">
     <a href="#quickstart" class="btn btn-primary">🚀 Quick Start</a>
     <a href="https://github.com/Kuzko-coder/tg-agent-leadgen" class="btn btn-secondary">📖 GitHub</a>
-    <a href="#oars" class="btn btn-secondary">🧠 How It Works</a>
+    <a href="#how" class="btn btn-secondary">💡 How It Works</a>
   </div>
 </section>
 
@@ -523,23 +525,20 @@
     </div>
     <div class="terminal-body">
       <span class="line"><span class="line-prompt">$ </span><span class="line-cmd">python main.py</span></span>
-      <span class="line line-out">✨ TG-Agent-LeadGen starting...</span>
-      <span class="line line-success">✅ Database initialized (SQLite WAL)</span>
       <span class="line line-success">✅ Authorized as: Алина (@alina_design)</span>
-      <span class="line line-success">✅ Agent started! Listening for: дизайн, интерьер, ремонт</span>
+      <span class="line line-success">✅ Monitoring 12 public groups · triggers: дизайн, ремонт, посоветуй</span>
       <span class="line"> </span>
-      <span class="line line-warn">⚡ [Handler] Trigger matched! chat_id=123456 from @user_ivan</span>
-      <span class="line line-out">   → OARS step 1/4: open question</span>
-      <span class="line line-out">   → Read acknowledge sent</span>
-      <span class="line line-out">   → Typing simulation: 4.2s</span>
-      <span class="line line-agent">   ← AGENT: "Слушай, а ты уже делал ремонт или только планируешь?"</span>
+      <span class="line line-warn">⚡ [PUBLIC CHAT] @design_chat_msk — @petrov_andrey wrote:</span>
+      <span class="line line-user">   💬 "Народ, подскажите нормального дизайнера интерьера, уже замучился гуглить"</span>
+      <span class="line line-out">   → Context loaded: 8 prev messages read · topic: ремонт квартиры</span>
+      <span class="line line-out">   → Trigger: «подскажите» · OARS step 1/4 · typing 3.8s</span>
+      <span class="line line-agent">   ← AGENT: "Смотря что за квартира. У меня была похожая задача — сколько метров?"</span>
       <span class="line"> </span>
-      <span class="line line-user">   → USER: "планирую, хочу скандинавский стиль"</span>
-      <span class="line line-out">   → OARS step 2/4: empathy</span>
-      <span class="line line-out">   → Reflection gate: ✅ clean reply</span>
-      <span class="line line-agent">   ← AGENT: "О, скандинавский — это огонь. Cебе так делала. Главная боль — это..."</span>
+      <span class="line line-user">   → @petrov_andrey: "55 метров, однушка, хочу расширить визуально"</span>
+      <span class="line line-out">   → OARS step 2/4: empathy · reflection gate ✅ · typing 4.1s</span>
+      <span class="line line-agent">   ← AGENT: "О, однушка — это вызов. Я через это проходила. Главное — зонирование..."</span>
       <span class="line"> </span>
-      <span class="line line-success">   🎉 Lead state: NEW → ENGAGED</span>
+      <span class="line line-success">   🎯 Lead: NEW → ENGAGED → DM открыт → OARS 3/4 в личке</span>
       <span class="line"><span class="line-prompt">$ </span><span class="cursor"></span></span>
     </div>
   </div>
@@ -549,24 +548,24 @@
 <section style="padding: 40px 1.5rem;">
   <div class="stats-grid" style="max-width: 1100px; margin: 0 auto;">
     <div class="stat-card">
-      <div class="stat-number">18</div>
-      <div class="stat-label">Unit Tests Passing</div>
+      <div class="stat-number">24/7</div>
+      <div class="stat-label">Public Chat Monitoring</div>
     </div>
     <div class="stat-card">
-      <div class="stat-number">10</div>
-      <div class="stat-label">Messages in Memory Window</div>
+      <div class="stat-number">∞</div>
+      <div class="stat-label">Groups It Can Monitor</div>
     </div>
     <div class="stat-card">
       <div class="stat-number">4</div>
-      <div class="stat-label">OARS Conversation Steps</div>
+      <div class="stat-label">OARS Social Engineering Steps</div>
     </div>
     <div class="stat-card">
-      <div class="stat-number">9</div>
-      <div class="stat-label">Packages / Modules</div>
+      <div class="stat-number">0</div>
+      <div class="stat-label">Ads Needed</div>
     </div>
     <div class="stat-card">
-      <div class="stat-number">3</div>
-      <div class="stat-label">Background Jobs</div>
+      <div class="stat-number">18</div>
+      <div class="stat-label">Unit Tests Passing</div>
     </div>
     <div class="stat-card">
       <div class="stat-number">0</div>
@@ -577,11 +576,36 @@
 
 <div class="divider"></div>
 
+<!-- HOW -->
+<section id="how" style="padding-bottom: 0;">
+  <div class="section-label">How it actually works</div>
+  <h2 class="section-title">💡 Smart Digital Word-of-Mouth</h2>
+  <p class="section-desc">Someone writes <em>"подскажите хороший курс"</em> in a public group chat. Your agent reads the conversation context, joins like a regular participant, and leads them to your product — naturally. No ads. No spam.</p>
+
+  <div class="features-grid" style="margin-bottom: 2rem;">
+    <div class="feature-card" style="border-color: rgba(0,212,170,0.3); background: rgba(0,212,170,0.03);">
+      <div class="feature-icon">👁️</div>
+      <div class="feature-title">Monitors Public Chats 24/7</div>
+      <div class="feature-desc">Joins any number of public groups, reads every message, triggers on your keywords: «подскажите», «посоветуйте», «где купить», «кто знает».</div>
+    </div>
+    <div class="feature-card" style="border-color: rgba(0,212,170,0.3); background: rgba(0,212,170,0.03);">
+      <div class="feature-icon">📖</div>
+      <div class="feature-title">Reads Full Conversation Context</div>
+      <div class="feature-desc">Loads the last 8–10 messages of the thread before replying. Understands what's being discussed — not just the trigger phrase — and crafts a context-aware response.</div>
+    </div>
+    <div class="feature-card" style="border-color: rgba(0,212,170,0.3); background: rgba(0,212,170,0.03);">
+      <div class="feature-icon">🎭</div>
+      <div class="feature-title">Social Engineering Funnel</div>
+      <div class="feature-desc">Not a bot, not an ad. An OARS funnel: open genuine question → build rapport → probe pain → natively recommend. Converts cold strangers into warm leads in 4 exchanges.</div>
+    </div>
+  </div>
+</section>
+
 <!-- FEATURES -->
 <section id="features">
   <div class="section-label">What's inside</div>
-  <h2 class="section-title">✨ Features</h2>
-  <p class="section-desc">Everything you need — from anti-ban protection to conversation memory — built into a clean layered architecture.</p>
+  <h2 class="section-title">✨ Technical Features</h2>
+  <p class="section-desc">Production-ready architecture — anti-ban, encrypted sessions, human simulation, and daily lead reports.</p>
 
   <div class="features-grid">
     <div class="feature-card">
@@ -636,9 +660,9 @@
 
 <!-- OARS -->
 <section id="oars">
-  <div class="section-label">Conversation Strategy</div>
+  <div class="section-label">Social Engineering Funnel</div>
   <h2 class="section-title">🧠 The OARS Method</h2>
-  <p class="section-desc">The agent never sells in the first message. It builds rapport first, then converts.</p>
+  <p class="section-desc">The agent <strong>never sells in the first message</strong>. It enters the conversation as a genuine participant, builds trust over 4 exchanges, then converts — feeling like a friend's recommendation, not an ad.</p>
 
   <div class="oars-steps">
     <div class="oars-card">
