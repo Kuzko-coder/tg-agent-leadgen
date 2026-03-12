@@ -16,6 +16,7 @@ main.py
       - Queue worker
       - Cleanup job
       - Report job
+      - Web dashboard (http://localhost:8080)
 
 Запуск: python main.py
 """
@@ -140,10 +141,15 @@ async def main() -> None:
     cleanup_task = asyncio.create_task(start_cleanup_job(), name="cleanup_job")
     report_task = asyncio.create_task(start_report_job(client), name="report_job")
 
+    from packages.website.server import start_dashboard
+    dashboard_task = asyncio.create_task(start_dashboard(), name="dashboard")
+
     console.print(
         f"[bold green]✅ Агент запущен![/bold green] "
         f"Слушаю чаты по триггерам: [cyan]{os.environ.get('TRIGGER_WORDS', 'не настроено')}[/cyan]"
     )
+    port = os.environ.get('DASHBOARD_PORT', '8080')
+    console.print(f"[dim]🌐 Дашборд: http://localhost:{port}[/dim]")
     console.print("[dim]Нажми Ctrl+C для остановки[/dim]")
 
     try:
@@ -156,9 +162,10 @@ async def main() -> None:
         queue_task.cancel()
         cleanup_task.cancel()
         report_task.cancel()
+        dashboard_task.cancel()
 
         await asyncio.gather(
-            queue_task, cleanup_task, report_task,
+            queue_task, cleanup_task, report_task, dashboard_task,
             return_exceptions=True,
         )
 

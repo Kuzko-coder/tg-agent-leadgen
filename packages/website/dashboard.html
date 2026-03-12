@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TG Agent Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f; --bg2: #111118; --bg3: #1a1a26;
+  --border: rgba(255,255,255,0.08);
+  --accent: #7c6aff; --accent2: #a259ff; --green: #00d4aa;
+  --red: #ff5f7e; --yellow: #ffbd2e;
+  --text: #e8e8f0; --muted: #888899;
+  --gradient: linear-gradient(135deg,#7c6aff,#a259ff,#00d4aa);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+
+/* ─── SIDEBAR ─── */
+.sidebar{
+  width:220px;min-width:220px;background:var(--bg2);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;padding:1.5rem 0;
+}
+.logo{
+  padding:0 1.2rem 1.5rem;
+  font-weight:700;font-size:1rem;
+  background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  border-bottom:1px solid var(--border);margin-bottom:1rem;
+}
+.logo span{-webkit-text-fill-color:initial}
+.nav-item{
+  display:flex;align-items:center;gap:.7rem;
+  padding:.6rem 1.2rem;border-radius:0;
+  cursor:pointer;color:var(--muted);font-size:.875rem;
+  transition:all .15s;border-left:3px solid transparent;
+}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(124,106,255,.05)}
+.nav-item .icon{font-size:1rem;width:20px;text-align:center}
+.sidebar-bottom{margin-top:auto;padding:1rem 1.2rem;border-top:1px solid var(--border)}
+.agent-status{
+  display:flex;align-items:center;gap:.5rem;
+  font-size:.8rem;color:var(--muted);
+}
+.status-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--green);
+  animation:pulse 2s infinite;
+}
+.status-dot.offline{background:var(--red);animation:none}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,212,170,.4)}50%{box-shadow:0 0 0 6px rgba(0,212,170,0)}}
+
+/* ─── MAIN ─── */
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+.topbar{
+  height:56px;background:var(--bg2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 1.5rem;position:sticky;top:0;z-index:10;
+}
+.page-title{font-weight:600;font-size:1rem}
+.topbar-right{display:flex;align-items:center;gap:.8rem}
+.save-btn{
+  background:var(--accent);color:#fff;border:none;
+  padding:.4rem 1rem;border-radius:6px;font-size:.85rem;
+  font-family:'Inter',sans-serif;cursor:pointer;font-weight:500;
+  transition:opacity .2s;display:none;
+}
+.save-btn:hover{opacity:.85}
+.save-btn.visible{display:block}
+
+.content{padding:1.5rem;flex:1}
+
+/* ─── PAGE SWITCH ─── */
+.page{display:none}
+.page.active{display:block}
+
+/* ─── CARDS ─── */
+.card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:12px;padding:1.2rem;margin-bottom:1rem;
+}
+.card-title{
+  font-weight:600;font-size:.875rem;margin-bottom:1rem;
+  color:var(--text);display:flex;align-items:center;gap:.5rem;
+}
+.card-title .label{
+  font-size:.7rem;font-weight:500;padding:.15rem .5rem;
+  border-radius:100px;background:rgba(124,106,255,.15);
+  color:var(--accent);margin-left:.4rem;
+}
+
+/* ─── FORM ─── */
+label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:.35rem;margin-top:.9rem}
+label:first-child{margin-top:0}
+input[type=text],textarea,select{
+  width:100%;background:var(--bg3);border:1px solid var(--border);
+  color:var(--text);border-radius:8px;padding:.55rem .75rem;
+  font-family:'Inter',sans-serif;font-size:.875rem;
+  outline:none;transition:border-color .2s;resize:vertical;
+}
+input[type=text]:focus,textarea:focus,select:focus{border-color:var(--accent)}
+textarea{min-height:90px;line-height:1.5}
+
+/* ─── TRIGGER TAGS ─── */
+.tags-wrap{
+  display:flex;flex-wrap:wrap;gap:.4rem;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;padding:.5rem;min-height:44px;
+  cursor:text;transition:border-color .2s;
+}
+.tags-wrap.focused{border-color:var(--accent)}
+.tag{
+  display:inline-flex;align-items:center;gap:.3rem;
+  background:rgba(124,106,255,.18);color:var(--accent);
+  border-radius:100px;padding:.15rem .6rem;font-size:.8rem;
+}
+.tag-del{cursor:pointer;opacity:.6;transition:opacity .15s;font-size:.9rem}
+.tag-del:hover{opacity:1}
+.tag-input{
+  border:none;background:transparent;color:var(--text);
+  font-size:.8rem;font-family:'Inter',sans-serif;
+  outline:none;min-width:80px;flex:1;
+}
+
+/* ─── STATS ─── */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.8rem;margin-bottom:1rem}
+.stat-box{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:10px;padding:1rem;text-align:center;
+}
+.stat-n{
+  font-size:1.8rem;font-weight:800;
+  background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  line-height:1;margin-bottom:.2rem;
+}
+.stat-l{color:var(--muted);font-size:.78rem}
+
+/* ─── FUNNEL ─── */
+.funnel-bar{
+  height:8px;background:rgba(255,255,255,.06);border-radius:100px;
+  margin:.4rem 0 .8rem;overflow:hidden;
+}
+.funnel-fill{
+  height:100%;border-radius:100px;
+  background:var(--gradient);transition:width .6s ease;
+}
+.funnel-row{margin-bottom:.2rem}
+.funnel-labels{display:flex;justify-content:space-between;font-size:.78rem}
+.funnel-labels span{color:var(--muted)}
+.funnel-labels b{color:var(--text)}
+
+/* ─── TABLE ─── */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+th{
+  text-align:left;padding:.5rem .75rem;font-size:.72rem;
+  text-transform:uppercase;letter-spacing:.05em;
+  color:var(--muted);border-bottom:1px solid var(--border);
+}
+td{padding:.55rem .75rem;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+.badge{
+  display:inline-block;padding:.15rem .5rem;border-radius:100px;
+  font-size:.72rem;font-weight:500;
+}
+.badge-new{background:rgba(124,106,255,.15);color:var(--accent)}
+.badge-engaged{background:rgba(255,189,46,.12);color:var(--yellow)}
+.badge-warm{background:rgba(0,212,170,.12);color:var(--green)}
+.badge-converted{background:rgba(0,212,170,.25);color:var(--green);font-weight:700}
+
+/* ─── HINT ─── */
+.hint{
+  background:rgba(124,106,255,.08);border:1px solid rgba(124,106,255,.2);
+  border-radius:8px;padding:.7rem 1rem;font-size:.8rem;color:var(--muted);
+  margin-bottom:1rem;line-height:1.5;
+}
+.hint b{color:var(--text)}
+
+/* ─── TOAST ─── */
+#toast{
+  position:fixed;bottom:1.5rem;right:1.5rem;z-index:999;
+  background:#1e1e30;border:1px solid var(--border);
+  border-radius:10px;padding:.8rem 1.2rem;font-size:.85rem;
+  display:none;align-items:center;gap:.6rem;
+  box-shadow:0 8px 32px rgba(0,0,0,.4);
+}
+#toast.show{display:flex;animation:toastIn .3s ease}
+#toast.ok .ti{color:var(--green)}
+#toast.err .ti{color:var(--red)}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:10px}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo"><span>🤖 </span>TG Agent</div>
+
+  <div class="nav-item active" onclick="goto('stats')">
+    <span class="icon">📊</span> Статистика
+  </div>
+  <div class="nav-item" onclick="goto('persona')">
+    <span class="icon">🎭</span> Портрет агента
+  </div>
+  <div class="nav-item" onclick="goto('triggers')">
+    <span class="icon">⚡</span> Триггер-слова
+  </div>
+  <div class="nav-item" onclick="goto('goal')">
+    <span class="icon">🎯</span> Цель конверсии
+  </div>
+  <div class="nav-item" onclick="goto('leads')">
+    <span class="icon">👥</span> Лиды
+  </div>
+  <div class="nav-item" onclick="goto('settings')">
+    <span class="icon">⚙️</span> Настройки
+  </div>
+
+  <div class="sidebar-bottom">
+    <div class="agent-status">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Проверяю...</span>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+
+  <div class="topbar">
+    <div class="page-title" id="pageTitle">Статистика</div>
+    <div class="topbar-right">
+      <button class="save-btn" id="saveBtn" onclick="saveConfig()">💾 Сохранить</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ── СТАТИСТИКА ── -->
+    <div class="page active" id="page-stats">
+      <div class="stats-row" id="statsRow">
+        <div class="stat-box"><div class="stat-n" id="sTotal">—</div><div class="stat-l">Лидов всего</div></div>
+        <div class="stat-box"><div class="stat-n" id="sToday">—</div><div class="stat-l">Новых за 24ч</div></div>
+        <div class="stat-box"><div class="stat-n" id="sConverted">—</div><div class="stat-l">Конвертировано</div></div>
+        <div class="stat-box"><div class="stat-n" id="sCR">—</div><div class="stat-l">Конверсия %</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🔽 Воронка OARS</div>
+        <div id="funnelWrap">
+          <div class="funnel-row">
+            <div class="funnel-labels"><b>NEW</b><span id="fNew">0</span></div>
+            <div class="funnel-bar"><div class="funnel-fill" id="fNewBar" style="width:0%;background:#7c6aff"></div></div>
+          </div>
+          <div class="funnel-row">
+            <div class="funnel-labels"><b>ENGAGED</b><span id="fEngaged">0</span></div>
+            <div class="funnel-bar"><div class="funnel-fill" id="fEngagedBar" style="width:0%;background:#a259ff"></div></div>
+          </div>
+          <div class="funnel-row">
+            <div class="funnel-labels"><b>WARM</b><span id="fWarm">0</span></div>
+            <div class="funnel-bar"><div class="funnel-fill" id="fWarmBar" style="width:0%;background:#00b89a"></div></div>
+          </div>
+          <div class="funnel-row">
+            <div class="funnel-labels"><b>CONVERTED</b><span id="fConverted">0</span></div>
+            <div class="funnel-bar"><div class="funnel-fill" id="fConvertedBar" style="width:0%;background:#00d4aa"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ПОРТРЕТ АГЕНТА ── -->
+    <div class="page" id="page-persona">
+      <div class="hint">
+        <b>Портрет личности</b> — это то, как агент представляет себя в беседе.
+        Чем детальнее описание (профессия, опыт, характер, интересы) — тем убедительнее диалог.
+      </div>
+      <div class="card">
+        <div class="card-title">🎭 Личность агента</div>
+        <label>Имя агента</label>
+        <input type="text" id="cfgName" placeholder="Алина">
+
+        <label>Описание персонажа</label>
+        <textarea id="cfgPersona" placeholder="Дизайнер интерьеров, 5 лет опыта в Москве. Специализируюсь на скандинавском и минималистичном стиле. Люблю кофе и деревянные фактуры. Прямолинейная, но с юмором."></textarea>
+
+        <label>Модель LLM</label>
+        <select id="cfgModel">
+          <option value="grok-4-1-fast-reasoning">grok-4-1-fast-reasoning</option>
+          <option value="grok-3">grok-3</option>
+          <option value="grok-2">grok-2</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ── ТРИГГЕР-СЛОВА ── -->
+    <div class="page" id="page-triggers">
+      <div class="hint">
+        Агент активируется в <b>публичном чате</b>, когда чьё-то сообщение содержит одно из этих слов.
+        Нажми <b>Enter</b> или <b>запятую</b> для добавления тега.
+      </div>
+      <div class="card">
+        <div class="card-title">⚡ Триггер-слова <span class="label" id="triggerCount">0</span></div>
+        <div class="tags-wrap" id="tagsWrap" onclick="document.getElementById('tagInput').focus()">
+          <input class="tag-input" id="tagInput" placeholder="Введи слово и нажми Enter...">
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">💡 Примеры триггеров</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.4rem">
+          <span class="tag" style="cursor:pointer" onclick="addTag('посоветуйте')">посоветуйте</span>
+          <span class="tag" style="cursor:pointer" onclick="addTag('подскажите')">подскажите</span>
+          <span class="tag" style="cursor:pointer" onclick="addTag('где лучше')">где лучше</span>
+          <span class="tag" style="cursor:pointer" onclick="addTag('кто знает')">кто знает</span>
+          <span class="tag" style="cursor:pointer" onclick="addTag('рекомендуете')">рекомендуете</span>
+          <span class="tag" style="cursor:pointer" onclick="addTag('хочу')">хочу</span>
+          <span class="tag" style="cursor:pointer" onclick="addTag('ищу')">ищу</span>
+          <span class="tag" style="cursor:pointer" onclick="addTag('дизайн')">дизайн</span>
+          <span class="tag" style="cursor:pointer" onclick="addTag('ремонт')">ремонт</span>
+          <span class="tag" style="cursor:pointer" onclick="addTag('курс')">курс</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ЦЕЛЬ КОНВЕРСИИ ── -->
+    <div class="page" id="page-goal">
+      <div class="hint">
+        <b>Цель конверсии</b> — что агент должен нативно порекомендовать на 4-м шаге OARS.
+        Формулируй как «действие + продукт», например: «Порекомендовать курс xyz.ru».
+      </div>
+      <div class="card">
+        <div class="card-title">🎯 Цель конверсии</div>
+        <label>Что должен предложить агент?</label>
+        <textarea id="cfgGoal" placeholder="Порекомендовать онлайн-курс по дизайну интерьера на сайте xyz.ru как логичный следующий шаг для изучения темы."></textarea>
+      </div>
+    </div>
+
+    <!-- ── ЛИДЫ ── -->
+    <div class="page" id="page-leads">
+      <div class="stats-row" style="grid-template-columns:repeat(4,1fr)">
+        <div class="stat-box"><div class="stat-n" id="lTotal">—</div><div class="stat-l">Всего</div></div>
+        <div class="stat-box"><div class="stat-n" id="lNew" style="color:var(--accent)">—</div><div class="stat-l">NEW</div></div>
+        <div class="stat-box"><div class="stat-n" id="lEngaged" style="color:var(--yellow)">—</div><div class="stat-l">ENGAGED</div></div>
+        <div class="stat-box"><div class="stat-n" id="lConverted" style="color:var(--green)">—</div><div class="stat-l">CONVERTED</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">👥 Список лидов</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Статус</th>
+                <th>Шаг OARS</th>
+                <th>Сообщений</th>
+                <th>Создан</th>
+              </tr>
+            </thead>
+            <tbody id="leadsBody">
+              <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem">Загрузка...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── НАСТРОЙКИ ── -->
+    <div class="page" id="page-settings">
+      <div class="card">
+        <div class="card-title">⚙️ Параметры работы</div>
+        <label>Интервал отчётов (часов)</label>
+        <input type="text" id="cfgReportH" placeholder="24">
+
+        <label>Порт веб-дашборда</label>
+        <input type="text" id="cfgPort" placeholder="8080" disabled style="opacity:.5">
+        <div style="font-size:.75rem;color:var(--muted);margin-top:.3rem">
+          Изменение порта требует перезапуска агента через .env (DASHBOARD_PORT)
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🔗 Полезные ссылки</div>
+        <div style="display:grid;gap:.5rem">
+          <a href="https://my.telegram.org" target="_blank" style="color:var(--accent);font-size:.875rem">my.telegram.org — API credentials</a>
+          <a href="https://x.ai" target="_blank" style="color:var(--accent);font-size:.875rem">x.ai — Grok API key</a>
+          <a href="https://github.com/Kuzko-coder/tg-agent-leadgen" target="_blank" style="color:var(--accent);font-size:.875rem">GitHub репозиторий</a>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- TOAST -->
+<div id="toast"><span class="ti">✅</span><span id="toastMsg"></span></div>
+
+<script>
+// ─── STATE ───────────────────────────────────────
+let tags = [];
+let dirty = false;
+
+const PAGES = {
+  stats: 'Статистика',
+  persona: 'Портрет агента',
+  triggers: 'Триггер-слова',
+  goal: 'Цель конверсии',
+  leads: 'Лиды',
+  settings: 'Настройки',
+};
+
+// ─── NAVIGATION ──────────────────────────────────
+function goto(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.textContent.trim().includes(PAGES[name].trim().substring(0, 4))) {
+      n.classList.add('active');
+    }
+  });
+  document.getElementById('pageTitle').textContent = PAGES[name];
+
+  // Show save button only on editable pages
+  const editable = ['persona', 'triggers', 'goal', 'settings'];
+  document.getElementById('saveBtn').classList.toggle('visible', editable.includes(name));
+
+  if (name === 'stats') loadStats();
+  if (name === 'leads') loadLeads();
+}
+
+// ─── TRIGGERS TAG INPUT ───────────────────────────
+function renderTags() {
+  const wrap = document.getElementById('tagsWrap');
+  wrap.querySelectorAll('.tag').forEach(t => t.remove());
+  const input = document.getElementById('tagInput');
+  tags.forEach(t => {
+    const el = document.createElement('span');
+    el.className = 'tag';
+    el.innerHTML = `${t}<span class="tag-del" onclick="removeTag('${t}')">×</span>`;
+    wrap.insertBefore(el, input);
+  });
+  document.getElementById('triggerCount').textContent = tags.length;
+  markDirty();
+}
+
+function addTag(word) {
+  word = word.trim().toLowerCase();
+  if (word && !tags.includes(word)) {
+    tags.push(word);
+    renderTags();
+  }
+}
+
+function removeTag(word) {
+  tags = tags.filter(t => t !== word);
+  renderTags();
+}
+
+document.getElementById('tagInput').addEventListener('keydown', e => {
+  const val = e.target.value.trim();
+  if ((e.key === 'Enter' || e.key === ',') && val) {
+    e.preventDefault();
+    val.split(',').forEach(w => addTag(w.trim()));
+    e.target.value = '';
+  }
+  if (e.key === 'Backspace' && !e.target.value && tags.length) {
+    removeTag(tags[tags.length - 1]);
+  }
+});
+document.getElementById('tagInput').addEventListener('paste', e => {
+  e.preventDefault();
+  const text = e.clipboardData.getData('text');
+  text.split(/[,\n ]+/).forEach(w => addTag(w.trim()));
+});
+
+// ─── DIRTY tracking ──────────────────────────────
+function markDirty() {
+  dirty = true;
+}
+['cfgName','cfgPersona','cfgModel','cfgGoal','cfgReportH'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', markDirty);
+});
+
+// ─── LOAD CONFIG ─────────────────────────────────
+async function loadConfig() {
+  try {
+    const res = await fetch('/api/config');
+    if (!res.ok) throw new Error('offline');
+    const cfg = await res.json();
+
+    document.getElementById('cfgName').value = cfg.agent_name || '';
+    document.getElementById('cfgPersona').value = cfg.agent_persona || '';
+    document.getElementById('cfgGoal').value = cfg.conversion_goal || '';
+    document.getElementById('cfgReportH').value = cfg.report_interval_hours || '24';
+
+    const modelSel = document.getElementById('cfgModel');
+    [...modelSel.options].forEach(o => o.selected = o.value === cfg.grok_model);
+
+    // Parse trigger words
+    tags = (cfg.trigger_words || '').split(',').map(t => t.trim()).filter(Boolean);
+    renderTags();
+
+    // Status
+    document.getElementById('statusDot').className = 'status-dot';
+    document.getElementById('statusText').textContent = `Онлайн · ${cfg.agent_name || 'Агент'}`;
+    dirty = false;
+  } catch {
+    document.getElementById('statusDot').className = 'status-dot offline';
+    document.getElementById('statusText').textContent = 'Агент оффлайн';
+  }
+}
+
+// ─── SAVE CONFIG ─────────────────────────────────
+async function saveConfig() {
+  const payload = {
+    agent_name: document.getElementById('cfgName').value,
+    agent_persona: document.getElementById('cfgPersona').value,
+    conversion_goal: document.getElementById('cfgGoal').value,
+    trigger_words: tags.join(','),
+    grok_model: document.getElementById('cfgModel').value,
+    report_interval_hours: document.getElementById('cfgReportH').value,
+  };
+
+  try {
+    const res = await fetch('/api/config', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error('save failed');
+    toast('✅ Сохранено! Изменения вступят в силу после перезапуска агента.', 'ok');
+    dirty = false;
+  } catch {
+    toast('❌ Ошибка сохранения. Проверь что агент запущен.', 'err');
+  }
+}
+
+// ─── LOAD STATS ──────────────────────────────────
+async function loadStats() {
+  try {
+    const res = await fetch('/api/stats');
+    if (!res.ok) return;
+    const s = await res.json();
+
+    document.getElementById('sTotal').textContent = s.total_leads ?? 0;
+    document.getElementById('sToday').textContent = s.new_today ?? 0;
+    document.getElementById('sConverted').textContent = s.converted_total ?? 0;
+
+    const total = s.total_leads || 1;
+    const cr = s.total_leads ? Math.round((s.converted_total / s.total_leads) * 100) : 0;
+    document.getElementById('sCR').textContent = cr + '%';
+
+    const by = s.by_state || {};
+    ['NEW','ENGAGED','WARM','CONVERTED'].forEach(st => {
+      const val = by[st] || 0;
+      const pct = Math.round((val / total) * 100);
+      const key = st.charAt(0) + st.slice(1).toLowerCase();
+      const el = document.getElementById('f' + key);
+      const bar = document.getElementById('f' + key + 'Bar');
+      if (el) el.textContent = val;
+      if (bar) bar.style.width = pct + '%';
+    });
+  } catch(e) {
+    console.warn('Stats unavailable:', e);
+  }
+}
+
+// ─── LOAD LEADS ──────────────────────────────────
+async function loadLeads() {
+  try {
+    const res = await fetch('/api/leads?limit=100');
+    if (!res.ok) return;
+    const data = await res.json();
+    const leads = data.leads || [];
+
+    const counts = {NEW:0,ENGAGED:0,WARM:0,CONVERTED:0};
+    leads.forEach(l => { if (counts[l.state] !== undefined) counts[l.state]++; });
+
+    document.getElementById('lTotal').textContent = leads.length;
+    document.getElementById('lNew').textContent = counts.NEW;
+    document.getElementById('lEngaged').textContent = counts.ENGAGED;
+    document.getElementById('lConverted').textContent = counts.CONVERTED;
+
+    const tbody = document.getElementById('leadsBody');
+    if (!leads.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem">Лидов пока нет</td></tr>';
+      return;
+    }
+    tbody.innerHTML = leads.map(l => `
+      <tr>
+        <td><span style="font-family:'JetBrains Mono',monospace">@${l.username || l.chat_id}</span></td>
+        <td><span class="badge badge-${(l.state||'').toLowerCase()}">${l.state || '—'}</span></td>
+        <td>${l.oars_step ?? '—'}/4</td>
+        <td>${l.message_count ?? '—'}</td>
+        <td style="color:var(--muted);font-size:.78rem">${l.created_at ? l.created_at.slice(0,10) : '—'}</td>
+      </tr>
+    `).join('');
+  } catch(e) {
+    console.warn('Leads unavailable:', e);
+  }
+}
+
+// ─── TOAST ───────────────────────────────────────
+function toast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  const ic = el.querySelector('.ti');
+  ic.textContent = type === 'ok' ? '✅' : '❌';
+  document.getElementById('toastMsg').textContent = msg;
+  el.className = 'show ' + type;
+  setTimeout(() => el.className = '', 3500);
+}
+
+// ─── INIT ─────────────────────────────────────────
+loadConfig();
+loadStats();
+
+// Nav click fix (match by index)
+const navItems = document.querySelectorAll('.nav-item');
+const pageKeys = Object.keys(PAGES);
+navItems.forEach((el, i) => {
+  el.onclick = () => goto(pageKeys[i]);
+});
+</script>
+</body>
+</html>

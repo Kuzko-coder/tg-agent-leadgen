@@ -227,3 +227,26 @@ async def get_stats() -> Dict[str, Any]:
         "converted_today": converted_today,
         "by_state": by_state,
     }
+
+
+async def get_leads(limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
+    """
+    Возвращает список лидов для веб-дашборда.
+    Сортировка: сначала самые новые активные.
+    """
+    async with aiosqlite.connect(settings.db_path) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            """
+            SELECT
+                chat_id, username, first_name, state, oars_step,
+                triggered_at, last_activity_at, converted_at,
+                datetime(triggered_at, 'unixepoch') as created_at
+            FROM leads
+            ORDER BY last_activity_at DESC
+            LIMIT ? OFFSET ?
+            """,
+            (limit, offset),
+        ) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(r) for r in rows]
