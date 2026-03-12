@@ -54,14 +54,16 @@ class AgentOrchestrator:
         :param client: Активный TelegramClient для отправки ответа
         """
         chat_id = event.chat_id
-        user_text = event.message.text
+        user_text = event.message.text or ""
         sender = await event.get_sender()
         username = getattr(sender, "username", None)
         first_name = getattr(sender, "first_name", None)
 
+        # BUG FIX: безопасный срез — text может быть короче 50 символов
+        preview = user_text[:50] + ("..." if len(user_text) > 50 else "")
         logger.info(
             f"[Agent] Обрабатываю сообщение от chat_id={chat_id} "
-            f"(@{username}): {user_text[:50]}..."
+            f"(@{username}): {preview}"
         )
 
         try:
@@ -75,7 +77,8 @@ class AgentOrchestrator:
             # ── Шаг 2: Получить текущий шаг OARS ─────────────────────────
             oars_step = await conversation_flow.get_step(chat_id)
 
-            # Если конверсия уже была — тихо выходим (не отвечаем)
+            # BUG FIX: проверяем конверсию ДО записи сообщения в память
+            # (раньше писали в память даже когда диалог завершён)
             if conversation_flow.is_completed(chat_id):
                 logger.info(
                     f"[Agent] chat_id={chat_id} уже конвертирован. Молчу."
@@ -118,9 +121,11 @@ class AgentOrchestrator:
 
             # ── Шаг 9: Отправить ответ ────────────────────────────────────
             await safe_call(client.send_message, chat_id, clean_reply)
+            # BUG FIX: безопасный срез для лог-превью
+            reply_preview = clean_reply[:60] + ("..." if len(clean_reply) > 60 else "")
             logger.info(
                 f"[Agent] Ответ отправлен в chat_id={chat_id}: "
-                f"{clean_reply[:60]}..."
+                f"{reply_preview}"
             )
 
             # ── Шаг 10: Сохранить ответ агента в память ───────────────────

@@ -79,12 +79,27 @@ class GrokClient:
                     max_tokens=512,     # Ответ не должен быть слишком длинным
                 )
 
-                reply = response.choices[0].message.content.strip()
+                # BUG FIX: choices может быть пустым при нестандартных ответах API
+                if not response.choices:
+                    logger.error("[Grok] Пустой список choices в ответе API")
+                    continue
+
+                reply = response.choices[0].message.content
+                if not reply:
+                    logger.warning("[Grok] Пустой content в ответе")
+                    continue
+                reply = reply.strip()
+
+                # BUG FIX: usage может быть None если API не возвращает статистику
                 usage = response.usage
+                tokens_info = (
+                    f"{usage.prompt_tokens}+{usage.completion_tokens}"
+                    if usage else "N/A"
+                )
 
                 logger.info(
                     f"[Grok] Ответ получен: {len(reply)} символов | "
-                    f"tokens: {usage.prompt_tokens}+{usage.completion_tokens}"
+                    f"tokens: {tokens_info}"
                 )
                 return reply
 

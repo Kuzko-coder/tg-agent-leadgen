@@ -5,8 +5,9 @@ packages/telegram/handlers.py
 
 Регистрирует хэндлер на входящие сообщения (events.NewMessage).
 Фильтрует сообщения:
-  - Игнорирует: self, бота, служебные сервисы
-  - Пропускает только: личные чаты (private) с триггер-словами
+  - Игнорирует: self, бота, служебные сервисы, пустые тексты
+  - Публичные чаты: проверяет триггер-слова → очередь
+  - Личные чаты: если диалог уже активен (follow-up в ЛС) → очередь
 
 При совпадении — кладёт событие в asyncio.Queue для обработки агентом.
 
@@ -48,41 +49,48 @@ def register_handlers(client: TelegramClient, queue: asyncio.Queue) -> None:
         6. Если прошло — в очередь
         """
         try:
-            # 1. Игнорируем свои сообщения
+            # 1. Игнорируем свои исходящие сообщения
             if event.out:
                 return
 
-            # 2. Игнорируем пустые сообщения
+            # 2. Игнорируем пустые сообщения (медиа без подписи и т.п.)
             if not event.message or not event.message.text:
                 return
 
-            # 3. Только личные чаты (private DM)
-            if not event.is_private:
-                return
-
-            # 4. Игнорируем ботов и сервисные аккаунты
+            # 3. Получаем отправителя — нужен для фильтрации ботов
             sender = await event.get_sender()
             if not sender:
                 return
+
+            # 4. Игнорируем ботов и сервисные аккаунты Telegram
             if getattr(sender, "bot", False):
                 return
             if getattr(sender, "support", False):
                 return
-            # Telegram Services (системные аккаунты с id < 0 или спецID)
-            if sender.id in (777000, 42777):  # Telegram Service Notifications
+            # Telegram Service Notifications (системные уведомления)
+            if getattr(sender, "id", None) in (777000, 42777):
                 return
 
             text = event.message.text
             chat_id = event.chat_id
+            is_private = event.is_private
+
+            # BUG FIX: агент должен мониторить ПУБЛИЧНЫЕ чаты ─ это главная функция.
+            # Логика: публичный чат → только при триггере (первый выстрел).
+            #         личный чат    → если диалог уже был начат в публичном чате.
+            # УБИРАЕМ РАННИЙ ВЫХОД event.is_private — он блокировал все группы!
 
             # 5. Проверяем триггер-слова (с учётом first-shot rule)
             if not trigger_filter.should_process(chat_id, text):
-                return
+                # В личке разрешаем если диалог активен (follow-up)
+                if not (is_private and trigger_filter.is_active(chat_id)):
+                    return
 
             # 6. Кладём в очередь агента
             logger.info(
                 f"[Handler] Триггер сработал! chat_id={chat_id} "
-                f"от @{getattr(sender, 'username', 'unknown')}"
+                f"от @{getattr(sender, 'username', 'unknown')} "
+                f"({'private' if is_private else 'group'})"
             )
             await queue.put(event)
 

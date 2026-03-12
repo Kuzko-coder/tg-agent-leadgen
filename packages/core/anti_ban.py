@@ -31,6 +31,9 @@ logger = logging.getLogger(__name__)
 
 # Максимальное количество retry для сетевых ошибок
 MAX_NETWORK_RETRIES = 3
+# Максимальное количество retry при FloodWait/PeerFlood (защита от бана)
+# BUG FIX: раньше continue в FloodWait вел к бесконечному циклу
+MAX_FLOOD_RETRIES = 5
 # Базовая задержка для exponential backoff (секунды)
 BASE_BACKOFF = 2.0
 
@@ -38,37 +41,51 @@ BASE_BACKOFF = 2.0
 async def safe_call(coro_func: Callable, *args, **kwargs) -> Any:
     """
     Оборачивает любой вызов Telethon API в anti-ban защиту.
-    
+
     При FloodWaitError — ждёт ровно столько, сколько требует Telegram.
     При сетевых ошибках — exponential backoff (2, 4, 8 секунд).
-    
+    BUG FIX: добавлен лимит MAX_FLOOD_RETRIES чтобы FloodWait/PeerFlood
+             не приводил к бесконечному циклу.
+
     Использование:
         result = await safe_call(client.send_message, chat_id, text)
     """
+    flood_attempts = 0
+
     for attempt in range(MAX_NETWORK_RETRIES):
         try:
             return await coro_func(*args, **kwargs)
 
         except FloodWaitError as e:
-            # Telegram прямо говорит сколько ждать — слушаемся
-            wait_seconds = e.seconds + 5  # +5 для надёжности
+            # BUG FIX: Telegram иногда шлёт seconds=0 — защищаемся от зацикливания
+            wait_seconds = max(1, e.seconds) + 5  # +5 для надёжности
+            flood_attempts += 1
+            if flood_attempts > MAX_FLOOD_RETRIES:
+                logger.error(
+                    f"[AntiBan] FloodWaitError после {MAX_FLOOD_RETRIES} попыток. Отдаём None."
+                )
+                return None
             logger.warning(
-                f"[AntiBan] FloodWaitError: жду {wait_seconds}s "
-                f"(Telegram требует {e.seconds}s)"
+                f"[AntiBan] FloodWaitError ({flood_attempts}/{MAX_FLOOD_RETRIES}): "
+                f"жду {wait_seconds}s (Telegram требует {e.seconds}s)"
             )
             await asyncio.sleep(wait_seconds)
-            # После ожидания — повторяем без увеличения счётчика попыток
+            # Не увеличиваем attempt — FloodWait не считается сетевой ошибкой
             continue
 
         except SlowModeWaitError as e:
-            wait_seconds = e.seconds + 2
+            wait_seconds = max(1, e.seconds) + 2
             logger.warning(f"[AntiBan] SlowModeWaitError: жду {wait_seconds}s")
             await asyncio.sleep(wait_seconds)
             continue
 
         except PeerFloodError:
             # Telegram считает нас спамером — длинная пауза
-            logger.error("[AntiBan] PeerFloodError! Жду 10 минут...")
+            flood_attempts += 1
+            if flood_attempts > MAX_FLOOD_RETRIES:
+                logger.error("[AntiBan] PeerFloodError: лимит попыток достигнут. Отдаём None.")
+                return None
+            logger.error(f"[AntiBan] PeerFloodError ({flood_attempts}/{MAX_FLOOD_RETRIES})! Жду 10 минут...")
             await asyncio.sleep(600)
             continue
 
