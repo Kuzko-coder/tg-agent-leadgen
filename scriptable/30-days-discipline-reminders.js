@@ -5,23 +5,51 @@
 
 /**
  * ============================================================================
- *  30 дней дисциплины — генератор напоминаний для Apple Reminders
+ *  30 дней дисциплины — Zepp
+ *  Генератор напоминаний для Apple Reminders (Scriptable, iOS 18+)
  * ============================================================================
  *
- *  Полностью автономный скрипт для приложения Scriptable (iOS 18+).
+ *  НАЗНАЧЕНИЕ
+ *  ----------
+ *  Один запуск скрипта строит целую систему дисциплины на 30 дней:
+ *  создаёт список напоминаний и наполняет его несколькими напоминаниями
+ *  на каждый день (утро, душ, контроль шагов, вечерняя проверка, сон).
  *
- *  Что делает один запуск:
- *    1. Находит (или создаёт) список напоминаний «30 дней дисциплины».
- *    2. Создаёт 30 напоминаний: «День N/30 — Аскеза» c датой на 06:00,
- *       начиная с сегодняшнего дня и далее +1 день подряд.
+ *  ЧТО ДЕЛАЕТ СКРИПТ
+ *  -----------------
+ *    1. Находит (или создаёт) список Apple Reminders «30 дней дисциплины — Zepp».
+ *    2. На каждый из 30 дней создаёт 6 напоминаний по расписанию:
+ *         06:00 — Старт (подъём)
+ *         08:00 — Холодный душ + вода
+ *         12:00 — Проверить шаги
+ *         18:00 — Добрать 10 000 шагов
+ *         21:30 — Вечерняя проверка
+ *         22:30 — Подготовка ко сну
  *    3. Каждому напоминанию задаёт подробное описание: цель дня, правила,
- *       вечерний чек-лист и индивидуальную мотивацию.
- *    4. Не создаёт дубликаты — если «День N/30 — Аскеза» уже есть, пропускает.
- *    5. В конце показывает итог: сколько создано / сколько уже существовало.
+ *       вечерний чек-лист, мотивацию и подсказки по сверке данных в Zepp.
+ *    4. Не создаёт дубликаты: если напоминание с таким названием уже есть
+ *       в списке — пропускает его.
+ *    5. В конце показывает отчёт: сколько создано, сколько уже существовало,
+ *       имя списка и что включить в Zepp для уведомлений на часах.
  *
- *  Ограничения (по требованиям):
- *    — только Reminders API из Scriptable;
- *    — без Calendar, без .ics, без Shortcuts, без сторонних библиотек.
+ *  ВАЖНО ПРО ZEPP / AMAZFIT (честное ограничение)
+ *  ----------------------------------------------
+ *    • Scriptable НЕ умеет напрямую читать данные из приложения Zepp
+ *      (шаги, сон, пульс, тренировки). Никакой «интеграции» здесь нет и быть
+ *      не может — это было бы фейком.
+ *    • Данные смотрятся ВРУЧНУЮ в самом приложении Zepp. Напоминания лишь
+ *      подсказывают, когда и что сверить.
+ *    • Уведомления Apple Reminders приходят на часы Amazfit ТОЛЬКО если
+ *      в Zepp включена пересылка уведомлений приложения «Напоминания».
+ *    • Если Zepp синхронизируется с Apple Health, то в будущем систему можно
+ *      расширить через HealthKit / Shortcuts (чтение шагов/сна из Health).
+ *      В «чистом» Scriptable доступа к HealthKit нет — это ограничение платформы.
+ *
+ *  ОГРАНИЧЕНИЯ ПО РЕАЛИЗАЦИИ
+ *  -------------------------
+ *    — Только Reminders API из Scriptable.
+ *    — Без Calendar-событий, без .ics, без Shortcuts, без сторонних библиотек.
+ *    — Все даты — в локальной таймзоне iPhone (стандартный объект Date).
  * ============================================================================
  */
 
@@ -30,11 +58,57 @@
 // ----------------------------------------------------------------------------
 
 const CONFIG = {
-  listName: "30 дней дисциплины", // Имя списка напоминаний
-  totalDays: 30,                  // Сколько дней в аскезе
-  reminderHour: 6,                // Час напоминания (06:00)
-  reminderMinute: 0,              // Минута напоминания
-  taskSuffix: "Аскеза",           // Суффикс в названии: «День N/30 — Аскеза»
+  listName: "30 дней дисциплины — Zepp", // Имя списка Apple Reminders
+  totalDays: 30,                          // Сколько дней в аскезе
+  startOffsetDays: 1,                     // 0 = старт сегодня, 1 = старт завтра
+  taskSuffix: "Аскеза",                   // Общий смысловой суффикс
+};
+
+// Отдельная константа для удобной замены (как просили в задаче):
+// 0 — начать сегодня, 1 — начать завтра.
+const START_OFFSET_DAYS = CONFIG.startOffsetDays;
+
+// ----------------------------------------------------------------------------
+//  Расписание напоминаний внутри одного дня
+//  tag  — короткая метка для заголовка: «День 1/30 — 12:00 Шаги»
+//  head — человекочитаемый заголовок блока в описании
+// ----------------------------------------------------------------------------
+
+const SLOTS = [
+  { hour: 6,  minute: 0,  tag: "Старт",    head: "Подъём / старт дня" },
+  { hour: 8,  minute: 0,  tag: "Душ+Вода", head: "Холодный душ + вода" },
+  { hour: 12, minute: 0,  tag: "Шаги",     head: "Проверить шаги" },
+  { hour: 18, minute: 0,  tag: "Добор",    head: "Добрать 10 000 шагов" },
+  { hour: 21, minute: 30, tag: "Проверка", head: "Вечерняя проверка" },
+  { hour: 22, minute: 30, tag: "Сон",      head: "Подготовка ко сну" },
+];
+
+// ----------------------------------------------------------------------------
+//  Подсказки по Zepp / Amazfit (переиспользуются в описаниях)
+// ----------------------------------------------------------------------------
+
+const ZEPP = {
+  // Разовая инструкция по настройке — попадает в самое первое напоминание.
+  setupNotifications:
+    "Открой Zepp → Профиль → своё устройство → «Уведомления приложений» → " +
+    "включи «Напоминания» (Reminders). Тогда уведомления с iPhone будут " +
+    "приходить и на часы Amazfit.",
+  setupHealthSync:
+    "Zepp → Профиль → «Apple Health» (Здоровье) → включи синхронизацию " +
+    "шагов, сна, пульса и тренировок.",
+  // Короткие напоминания-подсказки для отдельных блоков дня.
+  checkSteps:
+    "Шаги смотри вручную в Zepp (главный экран устройства или раздел «Шаги»). " +
+    "Scriptable сам данные Zepp не читает.",
+  checkHeart:
+    "Пульс можно проверить в Zepp → раздел «Пульс/Heart».",
+  checkSleep:
+    "Сон часы отследят автоматически — утром сверь качество сна в Zepp.",
+  eveningReview:
+    "Сверь в Zepp итоги дня: шаги, пульс, тренировки. Данные — только вручную.",
+  disclaimer:
+    "Важно: Scriptable не имеет прямого доступа к данным Zepp. Все показатели " +
+    "(шаги, сон, пульс, тренировки) проверяются вручную в приложении Zepp.",
 };
 
 // ----------------------------------------------------------------------------
@@ -112,132 +186,245 @@ const DAILY_MOTIVATIONS = [
 ];
 
 // ----------------------------------------------------------------------------
-//  Вспомогательные функции
+//  Вспомогательные функции: даты и форматирование
 // ----------------------------------------------------------------------------
 
 /**
- * Приводит время указанной даты к заданному часу/минуте (секунды и мс — 0).
- * @param {Date} baseDate Исходная дата.
- * @param {number} hour Час (0–23).
- * @param {number} minute Минута (0–59).
- * @returns {Date} Новая дата с выставленным временем.
+ * Возвращает дату для конкретного дня и слота в ЛОКАЛЬНОЙ таймзоне.
+ * @param {number} dayIndex Смещение дня от старта (0 = первый день).
+ * @param {{hour:number, minute:number}} slot Время слота.
+ * @returns {Date} Дата и время напоминания.
  */
-function atTime(baseDate, hour, minute) {
-  const d = new Date(baseDate.getTime());
-  d.setHours(hour, minute, 0, 0);
+function dueDateFor(dayIndex, slot) {
+  const d = new Date(); // Текущий момент в локальной таймзоне iPhone.
+  d.setDate(d.getDate() + START_OFFSET_DAYS + dayIndex);
+  d.setHours(slot.hour, slot.minute, 0, 0);
   return d;
 }
 
 /**
- * Возвращает дату для дня N аскезы (dayIndex начинается с 0 = сегодня).
- * @param {Date} startDate Дата первого дня (сегодня, время 06:00).
- * @param {number} dayIndex Смещение в днях от старта.
- * @returns {Date} Дата напоминания на 06:00.
+ * Форматирует время слота как «HH:MM».
+ * @param {{hour:number, minute:number}} slot Слот.
+ * @returns {string} Например «06:00».
  */
-function dateForDay(startDate, dayIndex) {
-  const d = new Date(startDate.getTime());
-  d.setDate(d.getDate() + dayIndex);
-  return atTime(d, CONFIG.reminderHour, CONFIG.reminderMinute);
+function formatSlotTime(slot) {
+  const hh = String(slot.hour).padStart(2, "0");
+  const mm = String(slot.minute).padStart(2, "0");
+  return `${hh}:${mm}`;
 }
 
 /**
- * Формирует название напоминания для дня N.
+ * Формирует заголовок напоминания.
  * @param {number} dayNumber Номер дня (1..30).
- * @returns {string} Например: «День 12/30 — Аскеза».
+ * @param {{hour:number, minute:number, tag:string}} slot Слот.
+ * @returns {string} Например «День 1/30 — 12:00 Шаги».
  */
-function buildTitle(dayNumber) {
-  return `День ${dayNumber}/${CONFIG.totalDays} — ${CONFIG.taskSuffix}`;
+function buildTitle(dayNumber, slot) {
+  return `День ${dayNumber}/${CONFIG.totalDays} — ${formatSlotTime(slot)} ${slot.tag}`;
 }
 
-/**
- * Собирает подробное описание (notes) для конкретного дня.
- * @param {number} dayNumber Номер дня (1..30).
- * @returns {string} Многострочный текст описания.
- */
-function buildNotes(dayNumber) {
-  const goal = DAILY_GOALS[dayNumber - 1];
-  const motivation = DAILY_MOTIVATIONS[dayNumber - 1];
+// ----------------------------------------------------------------------------
+//  Формирование описаний
+// ----------------------------------------------------------------------------
 
+/**
+ * Общий блок правил дня (используется в утреннем напоминании).
+ * @returns {string} Многострочный текст правил.
+ */
+function rulesBlock() {
   return [
-    `🎯 ЦЕЛЬ ДНЯ`,
-    goal,
-    ``,
-    `— — — — — — — — — — — — — — — —`,
-    ``,
-    `📜 ПРАВИЛА`,
-    ``,
-    `• Без сладкого`,
-    `  — полный отказ от сахара;`,
-    `  — без газировки;`,
-    `  — без шоколада;`,
-    `  — без булочек;`,
-    `  — без читмилов.`,
-    ``,
-    `• Подъём 06:00`,
-    `  — без переноса будильника.`,
-    ``,
-    `• Холодный душ`,
-    `  — 30–90 секунд.`,
-    ``,
-    `• 10 000 шагов`,
-    `  — минимум.`,
-    ``,
-    `• Без жалоб`,
-    `  — не говорить «устал», «не хочу», «не получится».`,
-    ``,
-    `• 15 минут медитации.`,
-    ``,
-    `• Минимум соцсетей.`,
-    ``,
-    `• Не спорить.`,
-    ``,
-    `• Написать 3 страницы мыслей.`,
-    ``,
-    `— — — — — — — — — — — — — — — —`,
-    ``,
-    `✅ ВЕЧЕРНЯЯ ПРОВЕРКА`,
-    ``,
-    `☐ Без сладкого`,
-    `☐ Встал в 06:00`,
-    `☐ Душ`,
-    `☐ Шаги`,
-    `☐ Медитация`,
-    `☐ Жалобы`,
-    `☐ Соцсети`,
-    `☐ Не спорил`,
-    `☐ Утренние страницы`,
-    ``,
-    `— — — — — — — — — — — — — — — —`,
-    ``,
-    `🔥 МОТИВАЦИЯ`,
-    motivation,
+    "📜 ПРАВИЛА ДНЯ",
+    "• Без сладкого: без сахара, газировки, шоколада, булочек, читмилов.",
+    "• Подъём 06:00 — без переноса будильника.",
+    "• Холодный душ 30–90 секунд.",
+    "• 10 000 шагов минимум.",
+    "• Без жалоб: не говорить «устал», «не хочу», «не получится».",
+    "• 15 минут медитации.",
+    "• Минимум соцсетей.",
+    "• Не спорить.",
+    "• Написать 3 страницы мыслей.",
   ].join("\n");
 }
 
+/**
+ * Вечерний чек-лист (используется в напоминании 21:30).
+ * @returns {string} Многострочный чек-лист.
+ */
+function eveningChecklistBlock() {
+  return [
+    "✅ ВЕЧЕРНЯЯ ПРОВЕРКА",
+    "☐ Без сладкого",
+    "☐ Встал в 06:00",
+    "☐ Душ",
+    "☐ Шаги (сверь в Zepp)",
+    "☐ Медитация",
+    "☐ Без жалоб",
+    "☐ Соцсети под контролем",
+    "☐ Не спорил",
+    "☐ Утренние страницы",
+  ].join("\n");
+}
+
+/**
+ * Строит подробное описание конкретного напоминания.
+ * @param {number} dayNumber Номер дня (1..30).
+ * @param {number} slotIndex Индекс слота в массиве SLOTS.
+ * @returns {string} Текст описания (notes).
+ */
+function buildDescription(dayNumber, slotIndex) {
+  const slot = SLOTS[slotIndex];
+  const goal = DAILY_GOALS[dayNumber - 1];
+  const motivation = DAILY_MOTIVATIONS[dayNumber - 1];
+  const divider = "— — — — — — — — — — — — — — — —";
+
+  // Заголовок описания: одинаков для всех блоков дня.
+  const header = [
+    `📅 День ${dayNumber}/${CONFIG.totalDays} · ${CONFIG.taskSuffix}`,
+    `⏰ ${formatSlotTime(slot)} — ${slot.head}`,
+    "",
+    "🎯 ЦЕЛЬ ДНЯ",
+    goal,
+    "",
+    divider,
+    "",
+  ];
+
+  // Тело блока зависит от слота.
+  let body;
+  switch (slotIndex) {
+    case 0: // 06:00 — Старт
+      body = [
+        "🌅 СТАРТ ДНЯ",
+        "Встань в 06:00 без переноса будильника. Сразу поднимись — не лежи.",
+        "",
+        rulesBlock(),
+        "",
+        divider,
+        "",
+        "⌚️ ZEPP",
+        ZEPP.checkSteps,
+        ZEPP.disclaimer,
+      ];
+      // Только в самый первый день добавляем инструкцию по настройке Zepp.
+      if (dayNumber === 1) {
+        body.push(
+          "",
+          "🔔 НАСТРОЙ ОДИН РАЗ (чтобы уведомления шли на часы):",
+          "1) " + ZEPP.setupNotifications,
+          "2) " + ZEPP.setupHealthSync
+        );
+      }
+      break;
+
+    case 1: // 08:00 — Холодный душ + вода
+      body = [
+        "🚿 ХОЛОДНЫЙ ДУШ + ВОДА",
+        "• Холодный душ 30–90 секунд. Не торгуйся с собой — просто зайди.",
+        "• Выпей стакан воды (250–350 мл) сразу после душа.",
+        "",
+        "⌚️ ZEPP",
+        ZEPP.checkHeart,
+      ];
+      break;
+
+    case 2: // 12:00 — Проверить шаги
+      body = [
+        "🚶 ПРОВЕРКА ШАГОВ (полдень)",
+        "Открой Zepp и посмотри, сколько шагов уже пройдено.",
+        "Если к обеду меньше 4000–5000 — запланируй прогулку днём.",
+        "",
+        "⌚️ ZEPP",
+        ZEPP.checkSteps,
+      ];
+      break;
+
+    case 3: // 18:00 — Добрать шаги
+      body = [
+        "🎯 ДОБРАТЬ 10 000 ШАГОВ",
+        "Проверь шаги в Zepp. Не хватает до 10 000 — выйди на прогулку сейчас.",
+        "Лучше добрать вечером, чем сорвать дневную норму.",
+        "",
+        "⌚️ ZEPP",
+        ZEPP.checkSteps,
+      ];
+      break;
+
+    case 4: // 21:30 — Вечерняя проверка
+      body = [
+        eveningChecklistBlock(),
+        "",
+        "⌚️ ZEPP",
+        ZEPP.eveningReview,
+        "",
+        divider,
+        "",
+        "🔥 МОТИВАЦИЯ",
+        motivation,
+      ];
+      break;
+
+    case 5: // 22:30 — Подготовка ко сну
+      body = [
+        "🌙 ПОДГОТОВКА КО СНУ",
+        "• Убери телефон и соцсети. Приглуши свет.",
+        "• Цель — уснуть так, чтобы встать в 06:00 отдохнувшим.",
+        "• Надень часы на ночь — сон отследится автоматически.",
+        "",
+        "⌚️ ZEPP",
+        ZEPP.checkSleep,
+      ];
+      break;
+
+    default:
+      body = [""];
+  }
+
+  return header.concat(body).join("\n");
+}
+
 // ----------------------------------------------------------------------------
-//  Работа со списком напоминаний
+//  План одного дня
 // ----------------------------------------------------------------------------
 
 /**
- * Находит существующий список по имени либо создаёт новый.
- * Использует штатный хелпер Scriptable, который сам делает «найти-или-создать».
+ * Строит план напоминаний на конкретный день: массив объектов
+ * { title, notes, dueDate } для всех слотов.
+ * @param {number} dayNumber Номер дня (1..30).
+ * @returns {Array<{title:string, notes:string, dueDate:Date}>} План дня.
+ */
+function buildDayPlan(dayNumber) {
+  const dayIndex = dayNumber - 1;
+
+  return SLOTS.map((slot, slotIndex) => ({
+    title: buildTitle(dayNumber, slot),
+    notes: buildDescription(dayNumber, slotIndex),
+    dueDate: dueDateFor(dayIndex, slot),
+  }));
+}
+
+// ----------------------------------------------------------------------------
+//  Работа со списком и напоминаниями
+// ----------------------------------------------------------------------------
+
+/**
+ * Находит существующий список напоминаний по имени либо создаёт новый.
+ * Использует штатный хелпер Scriptable «найти-или-создать».
  * @param {string} name Имя списка.
  * @returns {Promise<Calendar>} Объект списка напоминаний.
  */
-async function getOrCreateList(name) {
+async function getOrCreateReminderList(name) {
   return Calendar.findOrCreateForReminders(name);
 }
 
 /**
- * Собирает множество названий уже существующих в списке напоминаний,
- * чтобы не создавать дубликаты. Учитываются и выполненные, и невыполненные.
+ * Возвращает множество названий уже существующих напоминаний в списке
+ * (и выполненных, и невыполненных) — для защиты от дубликатов.
  * @param {Calendar} list Список напоминаний.
  * @returns {Promise<Set<string>>} Множество названий (title).
  */
-async function loadExistingTitles(list) {
+async function getExistingReminderTitles(list) {
   const all = await Reminder.all([list]);
   const titles = new Set();
-
   for (const reminder of all) {
     titles.add(reminder.title);
   }
@@ -247,95 +434,96 @@ async function loadExistingTitles(list) {
 /**
  * Создаёт одно напоминание в указанном списке.
  * @param {Calendar} list Список напоминаний.
- * @param {number} dayNumber Номер дня (1..30).
- * @param {Date} dueDate Дата и время напоминания.
+ * @param {{title:string, notes:string, dueDate:Date}} item Данные напоминания.
  */
-function createReminder(list, dayNumber, dueDate) {
+function createReminder(list, item) {
   const reminder = new Reminder();
-  reminder.title = buildTitle(dayNumber);
-  reminder.notes = buildNotes(dayNumber);
+  reminder.title = item.title;
+  reminder.notes = item.notes;
   reminder.calendar = list;
-  reminder.dueDateIncludesTime = true; // Учитывать время (06:00), а не только дату.
-  reminder.dueDate = dueDate;
+  reminder.dueDateIncludesTime = true; // Учитывать время, а не только дату.
+  reminder.dueDate = item.dueDate;
   reminder.save();
 }
 
 // ----------------------------------------------------------------------------
-//  Основной сценарий
+//  Отчёт
 // ----------------------------------------------------------------------------
 
 /**
- * Генерирует все 30 напоминаний, пропуская уже существующие.
- * @returns {Promise<{created: number, skipped: number}>} Статистика.
+ * Формирует текст итогового отчёта.
+ * @param {{created:number, skipped:number, total:number}} stats Статистика.
+ * @returns {string} Текст отчёта.
  */
-async function generateReminders() {
-  const list = await getOrCreateList(CONFIG.listName);
-  const existingTitles = await loadExistingTitles(list);
+function buildReport(stats) {
+  const { created, skipped, total } = stats;
 
-  // Старт — сегодня, 06:00.
-  const startDate = atTime(new Date(), CONFIG.reminderHour, CONFIG.reminderMinute);
+  const lines = [
+    `Список: «${CONFIG.listName}»`,
+    "",
+    `Создано новых: ${created}`,
+    `Уже существовало: ${skipped}`,
+    `Всего в плане: ${total}`,
+    "",
+    "Чтобы уведомления приходили на часы Amazfit:",
+    "1) " + ZEPP.setupNotifications,
+    "2) " + ZEPP.setupHealthSync,
+    "",
+    "Помни: данные Zepp (шаги, сон, пульс) сверяются вручную в приложении Zepp — "
+      + "Scriptable их напрямую не читает.",
+  ];
 
-  let created = 0;
-  let skipped = 0;
-
-  for (let dayNumber = 1; dayNumber <= CONFIG.totalDays; dayNumber++) {
-    const title = buildTitle(dayNumber);
-
-    // Пропускаем дубликаты.
-    if (existingTitles.has(title)) {
-      skipped++;
-      continue;
-    }
-
-    const dueDate = dateForDay(startDate, dayNumber - 1);
-    createReminder(list, dayNumber, dueDate);
-    existingTitles.add(title); // Защита от повторов в рамках одного запуска.
-    created++;
-  }
-
-  return { created, skipped };
+  return lines.join("\n");
 }
 
-/**
- * Формирует итоговое сообщение по результатам запуска.
- * @param {{created: number, skipped: number}} stats Статистика.
- * @returns {string} Текст итога.
- */
-function buildSummary(stats) {
-  const { created, skipped } = stats;
-
-  if (created === CONFIG.totalDays) {
-    return `Создано ${created} напоминаний.`;
-  }
-  if (created === 0) {
-    return `Новых напоминаний нет.\nВсе ${skipped} уже существовали.`;
-  }
-  return `Добавлено ${created} новых.\n${skipped} уже существовали.`;
-}
+// ----------------------------------------------------------------------------
+//  Главный сценарий
+// ----------------------------------------------------------------------------
 
 /**
- * Показывает результат пользователю: алертом (в приложении) и в консоли.
- * @param {string} message Текст сообщения.
- */
-async function presentSummary(message) {
-  console.log(message);
-
-  const alert = new Alert();
-  alert.title = "30 дней дисциплины";
-  alert.message = message;
-  alert.addAction("OK");
-  await alert.present();
-}
-
-/**
- * Точка входа. Оборачивает весь сценарий в обработку ошибок.
+ * Точка входа. Создаёт список и все напоминания, пропускает дубликаты,
+ * показывает итоговый отчёт. Оборачивает всё в обработку ошибок.
  */
 async function main() {
   try {
-    const stats = await generateReminders();
-    await presentSummary(buildSummary(stats));
+    const list = await getOrCreateReminderList(CONFIG.listName);
+    const existingTitles = await getExistingReminderTitles(list);
+
+    let created = 0;
+    let skipped = 0;
+    let total = 0;
+
+    // Проходим все 30 дней, для каждого — все слоты дня.
+    for (let dayNumber = 1; dayNumber <= CONFIG.totalDays; dayNumber++) {
+      const plan = buildDayPlan(dayNumber);
+
+      for (const item of plan) {
+        total++;
+
+        // Дубликат — пропускаем.
+        if (existingTitles.has(item.title)) {
+          skipped++;
+          continue;
+        }
+
+        createReminder(list, item);
+        existingTitles.add(item.title); // Защита от повторов в рамках запуска.
+        created++;
+      }
+    }
+
+    const report = buildReport({ created, skipped, total });
+    console.log(report);
+
+    const alert = new Alert();
+    alert.title = "30 дней дисциплины — Zepp";
+    alert.message = report;
+    alert.addAction("OK");
+    await alert.present();
   } catch (error) {
-    const message = `Ошибка при создании напоминаний:\n${error && error.message ? error.message : error}`;
+    const message =
+      "Ошибка при создании напоминаний:\n" +
+      (error && error.message ? error.message : String(error));
     console.error(message);
 
     const alert = new Alert();
